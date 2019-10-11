@@ -1,0 +1,222 @@
+\documentclass{beamer}
+ 
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amsthm,amssymb}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{minted}
+\usepackage{color}
+\usepackage[document]{ragged2e}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{bussproofs}
+\usepackage{syntax}
+\usepackage{tikz-cd}
+\newcommand*\pipenotdiv{\,\nmid\,}
+\newcommand*\pipediv{\,|\,}
+\usetheme{Madrid}
+
+\lstset{
+  frame=none,
+  xleftmargin=2pt,
+  stepnumber=1,
+  numbers=left,
+  numbersep=5pt,
+  numberstyle=\ttfamily\tiny\color[gray]{0.3},
+  belowcaptionskip=\bigskipamount,
+  captionpos=b,
+  escapeinside={*'}{'*},
+  language=haskell,
+  tabsize=2,
+  emphstyle={\bf},
+  commentstyle=\it,
+  stringstyle=\mdseries\rmfamily,
+  showspaces=false,
+  keywordstyle=\bfseries\rmfamily,
+  columns=flexible,
+  basicstyle=\small\sffamily,
+  showstringspaces=false,
+  morecomment=[l]\%,
+}
+
+ 
+%Information to be included in the title page:
+\title{Fun with Lattices  }
+\author{Jose Cardona}
+\institute{OQuant}
+\date{LambdaConf 2019}
+\graphicspath{{/home/jm0x5c/Documents/presentations/LC/images/}}
+
+\begin{document}
+ 
+\frame{\titlepage}
+
+\author[Jose, Cardona] % (optional, for multiple authors)
+{}
+
+
+\begin{frame}
+\frametitle{Why Haskell?}
+
+Haskell is:
+
+\begin{itemize}
+\item Pure! (Never worry about side effects again!)
+\item Declarative (wholemeal programming).
+\item Likely older than you! (And me!)
+\item Statically typed, with type inference.
+\item Functional! (unlike my attention span)
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Why not haskell}
+
+For the most part, the reasons "not to use haskell" are similar to the reasons you'd avoid GC'ed languages in the first place:
+
+\begin{itemize}
+\item You're building a piece of software that has resource constraints (RTOS, AAA Games).
+\item You're building a piece of software that has incredibly tight latency requirements (HFT).
+\item You're not a fun person (but we can fix that, you're here! that's the first step)
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{A lil' haskell}
+
+A simple declaration: We read this as "x has type Int"
+\begin{center}
+\begin{minted}{haskell}
+x :: Int
+x = 5
+\end{minted}
+\end{center}
+
+Haskell comes equipped with a few basic types built-in:
+
+\begin{itemize}
+\item Int = Machine-dependent sized integer
+\item Integer = Arbitrary precision integer  (Java folks will know it as bigInt)
+\item Double, Float = Same as other languages (32/64 bit precision floats)
+\item Lists (written as $[a]$ where a is some type)
+\item n-ary tuples (a, b), (a, b, c), etc.
+\end{itemize}
+
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{A lil' more haskell}
+
+Let's try every programmer's favorite definition to start a language:  the factorial function.
+
+\begin{minted}{haskell}
+factorial :: Integer -> Integer
+factorial 0 = 1
+factorial n = n * factorial (n-1)
+\end{minted}
+
+You might notice a few peculiar things:
+\begin{itemize}
+\item There's "multiple lines" of the factorial function.
+\item somehow there's a literal 0 on the left hand side.
+\end{itemize}
+
+The ability to "inspect the structure" of an argument is a particular concept called "pattern matching" which is central to the way you write haskell code. It's very similar to writing structurally inductive proofs.
+
+\end{frame}
+
+\begin{frame}[fragile]
+
+Recall well formed formulae. An expression $A$ is a well formed formula if it is of the following form:
+
+\begin{itemize}
+\item it is an "Atomic" metavariable $p, q, r, s...$
+\item It is of the form $(\neg A)$ where A is a WFF
+\item It is of the form $A \circ B$ where A and B and WFF and $\circ$ is a logical connective 
+\end{itemize}
+
+Proving $ ((\neg p) \lor q) \land q$ is a WFF simply involves recursively traversing the statements (top down or bottom up) and building the WFF that way.
+
+Pattern matching works on that same premise.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Arithmetic Operators}
+ 	
+\begin{itemize}
+\item $+,-, *$ work as you expect, however: Haskell \textit{does not} have any sort of implicit numeric conversions. You may come to appreciate this later, but: to go from a fractional type to an integral type: use $round, ceiling, floor$. To go from an integral to a rational, use $fromIntegral$.
+\item modulo is $mod$ (not $\%$).
+\item $\/$ is for fractional division. For integral division, use $div$
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Booleans}
+
+\begin{itemize}
+\item $True$ and $False$.
+\item logical negation is just $not$. It's just a function.
+\item $\&\&, ||$ logical operators
+\item For ordering/equality: use $==, >, >=, <, <=$ though note: equality is structural equality in haskell, and comparison operators only operate on the same type.
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Algebraic data types}
+
+if you're familiar with enums in java:
+
+\begin{minted}{java}
+public enum Level {
+ HIGH,
+ LOW,
+ EVEN_LOWER,
+ INFO,
+ SWEET_N_LO
+}
+\end{minted}
+
+We have the same in haskell:
+
+\begin{minted}{haskell}
+data Level = High | Low | EvenLower | Info | SweetNLo
+\end{minted}
+
+Similar to enums: the compiler assists us quite a bit in determining if we're missing a case for our enums if we don't provide it. However,
+ there's some power algebraic data types have that enums do not
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Algebraic Data types}
+
+\begin{itemize}
+\item Algebraic data types can contain data.
+\item Algebraic data types can be recursive.
+\item Algebraic data types can be pattern matched on.
+\end{itemize}
+
+\begin{minted}{haskell}
+data ArithExpr 
+  = Add ArithExpr ArithExpr
+  | Sub ArithExpr ArithExpr 
+  | Value Int
+\end{minted}
+
+Example, with the above defined, we can now sum on this tree:
+
+\begin{minted}{haskell}
+eval :: ArithExpr -> Int
+eval (Add l r) = eval l + eval r
+eval (Sub l r) = eval l - eval r
+eval (Value i) = i
+\end{minted}
+
+\end{frame}
+
+\end{document}
